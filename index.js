@@ -4,12 +4,12 @@ const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 // middleware
-app.use(express());
+app.use(express.json());
 app.use(cors());
 
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_user}:${process.env.DB_pass}@cluster0.0jbjnlh.mongodb.net/?retryWrites=true&w=majority`;
-console.log(uri);
+
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
@@ -24,6 +24,27 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
+    const productCollection = client.db("productDB").collection("product");
+    // specific data
+    app.get("/product/:brand", async (req, res) => {
+      const brand = req.params.brand;
+      const query = { brand: brand };
+      const cursor = await productCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+    app.get("/product", async (req, res) => {
+      const cursor = productCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    // form to database
+    app.post("/product", async (req, res) => {
+      const addProduct = req.body;
+      const result = await productCollection.insertOne(addProduct);
+      res.send(result);
+    });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
