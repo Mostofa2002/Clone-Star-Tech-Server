@@ -8,7 +8,7 @@ app.use(express.json());
 app.use(cors());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const uri = `mongodb+srv://${process.env.DB_user}:${process.env.DB_pass}@cluster0.0jbjnlh.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0jbjnlh.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -22,7 +22,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     // Send a ping to confirm a successful connection
     const productCollection = client.db("productDB").collection("product");
     const addCartCollection = client.db("productDB").collection("addCart");
@@ -30,10 +30,11 @@ async function run() {
     app.get("/product/:brand", async (req, res) => {
       const brand = req.params.brand;
       const query = { brand: brand };
-      const cursor = await productCollection.find(query);
+      const cursor = productCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
+
     app.get("/product", async (req, res) => {
       const cursor = productCollection.find();
       const result = await cursor.toArray();
@@ -45,7 +46,7 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const options = {
-        projection: { description: 1, price: 1, photo: 1, name: 1 },
+        projection: { description: 1, price: 1, photo: 1, name: 1, type: 1 },
       };
       const result = await productCollection.findOne(query, options);
       res.send(result);
@@ -78,8 +79,39 @@ async function run() {
       const result = await addCartCollection.deleteOne(query);
       res.send(result);
     });
+    // update
+    app.get("/update/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await productCollection.findOne(query);
+      res.send(result);
+    });
 
-    await client.db("admin").command({ ping: 1 });
+    app.put("/update/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      console.log("query", query);
+      const options = { upsert: true };
+      const Updated = req.body;
+      const updateDoc = {
+        $set: {
+          name: Updated.name,
+          photo: Updated.photo,
+          rating: Updated.rating,
+          price: Updated.price,
+          type: Updated.type,
+          brand: Updated.brand,
+          description: Updated.description,
+        },
+      };
+      const result = await productCollection.updateOne(
+        query,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
